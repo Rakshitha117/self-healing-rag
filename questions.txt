@@ -1,0 +1,14 @@
+Q1: How many annual leave days can an employee take?
+→ leave_policy.txt
+
+Q2: How many days can I work from home?
+→ work_from_home_policy.txt
+
+Q3: What is the maximum hotel reimbursement?
+→ reimbursement_policy.txt / travel_policy.pdf
+
+Q4: How long do I have to submit travel expenses?
+→ travel_policy.pdf
+
+Q5: What are the normal working hours?
+→ employee_handbook.pdf
