@@ -1,3 +1,11 @@
+"""Load supported enterprise document formats into a common RAG record shape.
+
+Each loader returns a list of dictionaries containing ``text`` and ``metadata``
+keys. This normalized structure lets the downstream chunker and vector store
+handle text files, PDFs, Office documents, images, and tabular files uniformly.
+PDF pages and images fall back to OCR when their native text is unavailable.
+"""
+
 from pathlib import Path
 
 import pandas as pd
@@ -8,6 +16,14 @@ import pymupdf
 
 
 def load_txt(file_path: Path):
+    """Read a UTF-8 text file and return it as one normalized document record.
+
+    Args:
+        file_path: Path to the ``.txt`` source.
+
+    Returns:
+        A one-item list with source, type, page, and section metadata.
+    """
     text = file_path.read_text(encoding="utf-8")
 
     return [
@@ -24,6 +40,20 @@ def load_txt(file_path: Path):
 
 
 def load_pdf(file_path: Path):
+    """Extract one normalized record per non-empty PDF page.
+
+    Native page text is preferred. For scanned pages that contain no extractable
+    text, the page is rasterized at 2× scale and passed through Tesseract OCR.
+
+    Args:
+        file_path: Path to a valid PDF source.
+
+    Returns:
+        Normalized records with one-based page numbers.
+
+    Raises:
+        ValueError: If a file with a ``.pdf`` extension lacks the PDF signature.
+    """
     documents = []
 
     # A file named .pdf must contain the PDF signature, not merely text with a
@@ -68,6 +98,11 @@ def load_pdf(file_path: Path):
 
 
 def load_docx(file_path: Path):
+    """Extract paragraphs and table rows from a Word document.
+
+    Table cells in each row are joined using `` | `` so that labels and values
+    remain associated in the text that will later be embedded.
+    """
     document = Document(file_path)
 
     text_parts = []
@@ -98,6 +133,7 @@ def load_docx(file_path: Path):
 
 
 def load_image(file_path: Path):
+    """Run Tesseract OCR on an image and return one normalized document record."""
     image = Image.open(file_path)
 
     text = pytesseract.image_to_string(image)
@@ -114,6 +150,11 @@ def load_image(file_path: Path):
 
 
 def load_csv_or_excel(file_path: Path):
+    """Convert a CSV or Excel table into embedding-friendly labeled rows.
+
+    Each output line has the form ``column: value | ...``, retaining column
+    names so retrieved table values have meaningful context.
+    """
     if file_path.suffix.lower() == ".csv":
         dataframe = pd.read_csv(file_path)
     else:
@@ -141,6 +182,14 @@ def load_csv_or_excel(file_path: Path):
 
 
 def load_document(file_path):
+    """Dispatch a source file to the appropriate format-specific loader.
+
+    Supported extensions are TXT, PDF, DOCX, PNG/JPG/JPEG, CSV, XLSX, and XLS.
+    The return value always follows the common ``text``/``metadata`` contract.
+
+    Raises:
+        ValueError: If the file extension is not supported.
+    """
     file_path = Path(file_path)
     extension = file_path.suffix.lower()
 

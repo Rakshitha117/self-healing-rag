@@ -1,3 +1,11 @@
+"""Ingest the documents in ``data/raw`` into the persistent vector store.
+
+This script is the indexing entry point for the project. It loads every
+supported source document, preserves source metadata, divides its content into
+retrieval-sized chunks, creates embeddings, and upserts those chunks into the
+Chroma collection used by the query workflow.
+"""
+
 from pathlib import Path
 
 from app.ingestion.loader import load_document
@@ -9,6 +17,12 @@ DATA_FOLDER = Path("data/raw")
 
 
 def main():
+    """Load, chunk, preview, and index all documents in :data:`DATA_FOLDER`.
+
+    A failure in one source file is reported but does not prevent the remaining
+    files from being indexed. Re-running the script is safe because the vector
+    store writes chunks with deterministic identifiers and uses Chroma upserts.
+    """
     all_documents = []
 
     for file_path in DATA_FOLDER.iterdir():
